@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スーパー価格比較</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #f5f2ec;
+    --surface:   #ffffff;
+    --border:    #d8d2c6;
+    --text:      #1a1814;
+    --muted:     #7a7268;
+    --accent:    #1a5c3a;
+    --accent-lt: #e8f5ee;
+    --best:      #d64e1a;
+    --best-lt:   #fdf0eb;
+    --tag-bg:    #ede9e1;
+    --shadow:    0 2px 12px rgba(26,24,20,.08);
+    --radius:    10px;
+    --mono:      'DM Mono', monospace;
+    --sans:      'Noto Sans JP', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── header ── */
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  }
+  .logo {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: rgba(255,255,255,.15);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  nav { display: flex; gap: 4px; }
+  .nav-btn {
+    padding: 7px 14px;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    background: transparent;
+    color: rgba(255,255,255,.7);
+    transition: background .18s, color .18s;
+  }
+  .nav-btn.active, .nav-btn:hover {
+    background: rgba(255,255,255,.18);
+    color: #fff;
+  }
+
+  /* ── loading bar ── */
+  #loading-bar {
+    display: none;
+    position: sticky;
+    top: 56px;
+    z-index: 99;
+    background: #14864f;
+    color: rgba(255,255,255,.92);
+    text-align: center;
+    padding: 6px 20px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: .06em;
+  }
+  .loading .btn          { opacity: 0.5; pointer-events: none; cursor: not-allowed; }
+  .loading .chip .del    { pointer-events: none; opacity: 0.3; }
+  .loading .cell-del     { pointer-events: none !important; opacity: 0.3 !important; }
+
+  /* ── setup banner ── */
+  #setup-banner {
+    display: none;
+    background: #fffbeb;
+    border: 1px solid #f59e0b;
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  #setup-banner strong { color: #92400e; font-size: 14px; }
+  #setup-banner code {
+    background: #fef3c7;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  /* ── layout ── */
+  main { max-width: 960px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── section heading ── */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* ── card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── form elements ── */
+  label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 5px; letter-spacing: .04em; }
+
+  input[type=text], input[type=number], input[type=date], select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color .15s, box-shadow .15s;
+    outline: none;
+    appearance: none;
+  }
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(26,92,58,.12);
+  }
+
+  .form-row { display: grid; gap: 14px; margin-bottom: 14px; }
+  .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  @media(max-width:600px) {
+    .form-row.cols-2, .form-row.cols-3 { grid-template-columns: 1fr; }
+  }
+
+  /* ── btn ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 18px;
+    border: none; border-radius: 7px;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: opacity .15s, transform .1s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: .88; }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .btn-ghost { background: var(--tag-bg); color: var(--text); }
+  .btn-ghost:hover { background: var(--border); }
+  .btn-danger { background: #fde8e2; color: #c0392b; }
+  .btn-danger:hover { background: #fbd3cc; }
+
+  /* ── store chips ── */
+  .store-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .chip .del { cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; transition: color .15s; }
+  .chip .del:hover { color: #c0392b; }
+
+  /* ── product suggestions ── */
+  .suggestion-box {
+    margin-top: 10px;
+    background: var(--best-lt);
+    border: 1px solid #f0c4b0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: none;
+  }
+  .suggestion-box.visible { display: block; }
+  .suggestion-title {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--best); margin-bottom: 8px;
+  }
+  .suggestion-items { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sug-item {
+    background: #fff;
+    border: 1px solid #f0c4b0;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .sug-item .sug-store { color: var(--muted); }
+  .sug-item .sug-price { font-family: var(--mono); font-weight: 500; color: var(--text); font-size: 13px; }
+  .sug-item .sug-date { color: var(--muted); font-size: 11px; }
+
+  /* ── comparison view ── */
+  .compare-grid { display: flex; flex-direction: column; gap: 12px; }
+  .compare-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .compare-product-header {
+    padding: 12px 18px;
+    background: var(--tag-bg);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .compare-product-name { font-size: 15px; font-weight: 700; }
+  .compare-product-meta { font-size: 12px; color: var(--muted); }
+  .compare-prices {
+    display: flex; flex-wrap: wrap; gap: 0;
+  }
+  .price-cell {
+    flex: 1 1 160px;
+    padding: 14px 18px;
+    border-right: 1px solid var(--border);
+    position: relative;
+    transition: background .15s;
+  }
+  .price-cell:last-child { border-right: none; }
+  .price-cell.best {
+    background: var(--best-lt);
+  }
+  .price-cell .store-name { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 4px; }
+  .price-cell .price-val {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: -.01em;
+  }
+  .price-cell.best .price-val { color: var(--best); }
+  .price-cell .price-yen { font-size: 13px; font-weight: 400; }
+  .price-cell .price-date { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .best-badge {
+    display: inline-block;
+    background: var(--best); color: #fff;
+    font-size: 10px; font-weight: 700; letter-spacing: .06em;
+    padding: 2px 7px; border-radius: 20px;
+    vertical-align: middle; margin-left: 6px;
+  }
+  .cell-del {
+    position: absolute; top: 7px; right: 7px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 14px; line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: opacity .15s, background .15s, color .15s;
+  }
+  .price-cell:hover .cell-del { opacity: 1; }
+  .cell-del:hover { background: #fde8e2; color: #c0392b; }
+  .price-cell.best .cell-del:hover { background: rgba(255,255,255,.6); }
+  .price-cell.no-data .price-val { color: var(--border); font-size: 16px; }
+
+  /* ── history table ── */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); }
+  thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--tag-bg);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .12s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #fafaf8; }
+  @keyframes rowDelete {
+    0%   { opacity: 1; transform: translateX(0); max-height: 60px; }
+    40%  { opacity: 0; transform: translateX(40px); max-height: 60px; }
+    100% { opacity: 0; transform: translateX(40px); max-height: 0; padding-top: 0; padding-bottom: 0; }
+  }
+  tbody tr.deleting { animation: rowDelete .35s ease forwards; overflow: hidden; }
+  tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
+  .td-price { font-family: var(--mono); font-weight: 500; font-size: 14px; }
+  .td-date { color: var(--muted); font-size: 12px; }
+
+  /* ── empty state ── */
+  .empty {
+    text-align: center; padding: 48px 24px; color: var(--muted);
+  }
+  .empty .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: .4; }
+  .empty p { font-size: 14px; }
+
+  /* ── toast ── */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(12px);
+    background: var(--text); color: #fff;
+    padding: 10px 20px; border-radius: 8px;
+    font-size: 13px; font-weight: 500;
+    opacity: 0; transition: opacity .25s, transform .25s;
+    pointer-events: none; z-index: 999; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── filter bar ── */
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
+  .filter-bar select, .filter-bar input { width: auto; flex: 1 1 160px; }
+  .filter-bar .spacer { flex: 1; }
+
+  /* ── stats strip ── */
+  .stats-strip { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+  .stat-box {
+    flex: 1 1 120px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .stat-box .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .stat-box .stat-val { font-family: var(--mono); font-size: 24px; font-weight: 500; margin-top: 2px; }
+
+  /* ── divider ── */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* ── autocomplete ── */
+  .ac-wrap { position: relative; }
+  .ac-list {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 7px 7px;
+    max-height: 160px;
+    overflow-y: auto;
+    z-index: 50;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,.1);
+  }
+  .ac-list.open { display: block; }
+  .ac-item {
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+  }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover, .ac-item.focused { background: var(--accent-lt); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛒</div>
+    スーパー価格比較
+  </div>
+  <nav>
+    <button class="nav-btn active" data-view="input">入力</button>
+    <button class="nav-btn" data-view="compare">比較</button>
+    <button class="nav-btn" data-view="history">履歴</button>
+  </nav>
+</header>
+
+<div id="loading-bar">データを読み込み中...</div>
+
+<main>
+
+  <!-- ── SETUP BANNER ── -->
+  <div id="setup-banner">
+    <strong>GAS URL の設定が必要です</strong><br>
+    Google Apps Script をデプロイし、発行された Web アプリの URL を<br>
+    <code>index.html</code> 内の <code>const GAS_URL = "https://script.google.com/macros/s/AKfycbzTxbKBj9Qr2SYQZ6ZW0fkLXdlX2nAXKngPEZ3JAmgH8qV80wA1J_w9rm30uBFRND6eLw/exec"</code> に設定してください。<br>
+    詳細は同梱の <code>gas_code.gs</code> の冒頭コメントを参照してください。
+  </div>
+
+  <!-- ── INPUT VIEW ── -->
+  <div id="view-input" class="view active">
+
+    <!-- Store management -->
+    <div class="section-title">店舗管理</div>
+    <div class="card" style="margin-bottom:24px">
+      <div class="form-row cols-2">
+        <div>
+          <label>店舗名を追加</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="store-name-input" placeholder="例：イオン、西友、ライフ" maxlength="30">
+            <button class="btn btn-primary btn-sm" onclick="addStore()" style="white-space:nowrap">追加</button>
+          </div>
+        </div>
+      </div>
+      <div class="store-chips" id="store-chips">
+        <span style="font-size:13px;color:var(--muted)" id="no-stores-msg">店舗がまだありません</span>
+      </div>
+    </div>
+
+    <!-- Price entry form -->
+    <div class="section-title">価格を入力</div>
+    <div class="card">
+      <div class="form-row cols-3">
+        <div>
+          <label>店舗</label>
+          <select id="entry-store">
+            <option value="">店舗を選択</option>
+          </select>
+        </div>
+        <div>
+          <label>日付</label>
+          <input type="date" id="entry-date">
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div>
+          <label>商品名</label>
+          <div class="ac-wrap">
+            <input type="text" id="entry-product" placeholder="例：牛乳、食パン、豆腐" maxlength="50" autocomplete="off">
+            <div class="ac-list" id="product-ac"></div>
+          </div>
+        </div>
+        <div>
+          <label>価格（円）</label>
+          <input type="number" id="entry-price" placeholder="例：198" min="0" max="99999">
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>備考（任意）</label>
+          <input type="text" id="entry-note" placeholder="例：木綿豆腐 300g、特売品、産地：北海道" maxlength="100">
+        </div>
+      </div>
+
+      <!-- Reference prices -->
+      <div class="suggestion-box" id="suggestion-box">
+        <div class="suggestion-title">📊 他店舗での同商品の価格（参考）</div>
+        <div class="suggestion-items" id="suggestion-items"></div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:6px">
+        <button class="btn btn-primary" onclick="addEntry()">
+          <span>＋</span> 価格を登録
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── COMPARE VIEW ── -->
+  <div id="view-compare" class="view">
+    <div class="stats-strip" id="stats-strip"></div>
+    <div class="filter-bar">
+      <div class="section-title" style="margin:0;align-self:center">商品別 価格比較</div>
+      <div class="spacer"></div>
+      <input type="text" id="compare-search" placeholder="商品を検索..." style="max-width:200px">
+    </div>
+    <div class="compare-grid" id="compare-grid">
+      <div class="empty"><div class="empty-icon">🛒</div><p>データがありません。まず価格を入力してください。</p></div>
+    </div>
+  </div>
+
+  <!-- ── HISTORY VIEW ── -->
+  <div id="view-history" class="view">
+    <div class="filter-bar">
+      <div class="section-title" style="margin:0;align-self:center">入力履歴</div>
+      <div class="spacer"></div>
+      <select id="hist-store-filter"><option value="">すべての店舗</option></select>
+      <input type="text" id="hist-search" placeholder="商品を検索...">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>日付</th>
+            <th>店舗</th>
+            <th>商品名</th>
+            <th>備考</th>
+            <th>価格</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="history-empty" style="display:none">
+      <div class="empty-icon">📋</div><p>履歴がありません。</p>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzTxbKBj9Qr2SYQZ6ZW0fkLXdlX2nAXKngPEZ3JAmgH8qV80wA1J_w9rm30uBFRND6eLw/exec";
+
+// ── State ─────────────────────────────────────────────────────
+let data = { stores: [], entries: [] };
+let isLoading = false;
+
+// ── API Helpers ───────────────────────────────────────────────
+async function apiGet(action) {
+  if (!GAS_URL) throw new Error('GAS_URL が未設定です。index.html の GAS_URL にデプロイ済みの URL を設定してください。');
+  const res = await fetch(`${GAS_URL}?action=${action}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json().catch(() => {
+    throw new Error('レスポンスの解析に失敗しました。デプロイ設定（アクセス権: 全員）を確認してください。');
+  });
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+async function apiPost(action, body) {
+  if (!GAS_URL) throw new Error('GAS_URL が未設定です。index.html の GAS_URL にデプロイ済みの URL を設定してください。');
+  // Content-Type を text/plain にすることで CORS プリフライトを回避
+  const res = await fetch(`${GAS_URL}?action=${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json().catch(() => {
+    throw new Error('レスポンスの解析に失敗しました。デプロイ設定（アクセス権: 全員）を確認してください。');
+  });
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+function setLoading(state) {
+  isLoading = state;
+  document.getElementById('loading-bar').style.display = state ? '' : 'none';
+  document.body.classList.toggle('loading', state);
+}
+
+async function loadData() {
+  if (!GAS_URL) {
+    document.getElementById('setup-banner').style.display = '';
+    renderStores();
+    return;
+  }
+  setLoading(true);
+  try {
+    const [stores, entries] = await Promise.all([
+      apiGet('getStores'),
+      apiGet('getPrices'),
+    ]);
+    data.stores  = stores;
+    data.entries = entries;
+  } catch (err) {
+    alert('データの読み込みに失敗しました:\n' + err.message);
+  } finally {
+    setLoading(false);
+    renderStores();
+  }
+}
+
+// ── Utilities ────────────────────────────────────────────────
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+function fmtDate(s) {
+  if (!s) return '';
+  const [y, m, d] = s.split('-');
+  return `${y}/${m}/${d}`;
+}
+function fmtPrice(n) {
+  return Number(n).toLocaleString('ja-JP');
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Navigation ───────────────────────────────────────────────
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view;
+    document.getElementById('view-' + view).classList.add('active');
+    if (view === 'compare') renderCompare();
+    if (view === 'history') renderHistory();
+  });
+});
+
+// ── Store Management ─────────────────────────────────────────
+function renderStores() {
+  const chips   = document.getElementById('store-chips');
+  const sel     = document.getElementById('entry-store');
+  const histSel = document.getElementById('hist-store-filter');
+
+  if (data.stores.length === 0) {
+    chips.innerHTML = '<span id="no-stores-msg" style="font-size:13px;color:var(--muted)">店舗がまだありません</span>';
+  } else {
+    chips.innerHTML = data.stores.map(s => `
+      <div class="chip">
+        ${s}
+        <span class="del" onclick="removeStore('${s.replace(/'/g,"\\'")}')">×</span>
+      </div>
+    `).join('');
+  }
+
+  const curStore = sel.value;
+  sel.innerHTML = '<option value="">店舗を選択</option>' +
+    data.stores.map(s => `<option value="${s}"${s === curStore ? ' selected' : ''}>${s}</option>`).join('');
+
+  const curHist = histSel.value;
+  histSel.innerHTML = '<option value="">すべての店舗</option>' +
+    data.stores.map(s => `<option value="${s}"${s === curHist ? ' selected' : ''}>${s}</option>`).join('');
+}
+
+async function addStore() {
+  if (isLoading) return;
+  const inp  = document.getElementById('store-name-input');
+  const name = inp.value.trim();
+  if (!name)                       { showToast('店舗名を入力してください'); return; }
+  if (data.stores.includes(name))  { showToast('すでに登録済みの店舗です'); return; }
+
+  setLoading(true);
+  try {
+    await apiPost('addStore', { name });
+    data.stores.push(name);
+    inp.value = '';
+    renderStores();
+    showToast(`「${name}」を追加しました`);
+  } catch (err) {
+    alert('店舗の追加に失敗しました:\n' + err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function removeStore(name) {
+  if (isLoading) return;
+  if (!confirm(`「${name}」を削除しますか？\nこの店舗の価格データも削除されます。`)) return;
+
+  setLoading(true);
+  try {
+    await apiPost('deleteStore', { name });
+    data.stores  = data.stores.filter(s => s !== name);
+    data.entries = data.entries.filter(e => e.store !== name);
+    renderStores();
+    showToast(`「${name}」を削除しました`);
+  } catch (err) {
+    alert('店舗の削除に失敗しました:\n' + err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+document.getElementById('store-name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addStore();
+});
+
+// ── Product Autocomplete ─────────────────────────────────────
+const productInput = document.getElementById('entry-product');
+const acList       = document.getElementById('product-ac');
+let acFocusIdx = -1;
+
+function getProducts() {
+  return [...new Set(data.entries.map(e => e.product))].sort();
+}
+
+function openAc(val) {
+  const products = getProducts().filter(p => p.includes(val) && val.length > 0);
+  if (products.length === 0) { acList.classList.remove('open'); return; }
+  acList.innerHTML = products.map(p => `<div class="ac-item" data-val="${p}">${p}</div>`).join('');
+  acList.classList.add('open');
+  acFocusIdx = -1;
+  acList.querySelectorAll('.ac-item').forEach(item => {
+    item.addEventListener('mousedown', e => {
+      e.preventDefault();
+      productInput.value = item.dataset.val;
+      acList.classList.remove('open');
+      updateSuggestions(item.dataset.val);
+    });
+  });
+}
+
+productInput.addEventListener('input', () => {
+  openAc(productInput.value.trim());
+  updateSuggestions(productInput.value.trim());
+});
+productInput.addEventListener('keydown', e => {
+  const items = acList.querySelectorAll('.ac-item');
+  if (e.key === 'ArrowDown') {
+    acFocusIdx = Math.min(acFocusIdx + 1, items.length - 1);
+    items.forEach((it, i) => it.classList.toggle('focused', i === acFocusIdx));
+    e.preventDefault();
+  } else if (e.key === 'ArrowUp') {
+    acFocusIdx = Math.max(acFocusIdx - 1, -1);
+    items.forEach((it, i) => it.classList.toggle('focused', i === acFocusIdx));
+    e.preventDefault();
+  } else if (e.key === 'Enter' && acFocusIdx >= 0) {
+    const val = items[acFocusIdx].dataset.val;
+    productInput.value = val;
+    acList.classList.remove('open');
+    updateSuggestions(val);
+    e.preventDefault();
+  } else if (e.key === 'Escape') {
+    acList.classList.remove('open');
+  }
+});
+document.addEventListener('click', e => {
+  if (!productInput.contains(e.target)) acList.classList.remove('open');
+});
+
+// ── Reference Prices Suggestion ──────────────────────────────
+function updateSuggestions(product) {
+  const box          = document.getElementById('suggestion-box');
+  const items        = document.getElementById('suggestion-items');
+  const currentStore = document.getElementById('entry-store').value;
+
+  if (!product) { box.classList.remove('visible'); return; }
+
+  const relevantEntries = data.entries.filter(e => e.product === product);
+  if (relevantEntries.length === 0) { box.classList.remove('visible'); return; }
+
+  const byStore = {};
+  relevantEntries.forEach(e => {
+    if (!byStore[e.store] || e.date > byStore[e.store].date) byStore[e.store] = e;
+  });
+
+  const refs = Object.values(byStore).filter(e => e.store !== currentStore);
+  if (refs.length === 0) { box.classList.remove('visible'); return; }
+
+  refs.sort((a, b) => a.price - b.price);
+  const minPrice = refs[0].price;
+
+  items.innerHTML = refs.map(e => `
+    <div class="sug-item">
+      <div class="sug-store">${e.store}</div>
+      <div class="sug-price${e.price === minPrice ? '" style="color:var(--best)' : ''}">¥${fmtPrice(e.price)}</div>
+      ${e.note ? `<div class="sug-date" style="color:var(--text)">${e.note}</div>` : ''}
+      <div class="sug-date">${fmtDate(e.date)}</div>
+    </div>
+  `).join('');
+  box.classList.add('visible');
+}
+
+document.getElementById('entry-store').addEventListener('change', () => {
+  updateSuggestions(productInput.value.trim());
+});
+
+// ── Add Entry ────────────────────────────────────────────────
+async function addEntry() {
+  if (isLoading) return;
+  const store   = document.getElementById('entry-store').value.trim();
+  const date    = document.getElementById('entry-date').value;
+  const product = productInput.value.trim();
+  const price   = parseFloat(document.getElementById('entry-price').value);
+
+  if (!store)                    { showToast('店舗を選択してください'); return; }
+  if (!date)                     { showToast('日付を入力してください'); return; }
+  if (!product)                  { showToast('商品名を入力してください'); return; }
+  if (isNaN(price) || price < 0) { showToast('正しい価格を入力してください'); return; }
+
+  const note  = document.getElementById('entry-note').value.trim();
+  const entry = { id: uid(), store, date, product, price, note };
+
+  setLoading(true);
+  try {
+    await apiPost('addPrice', entry);
+    data.entries.push(entry);
+    productInput.value = '';
+    document.getElementById('entry-price').value = '';
+    document.getElementById('entry-note').value  = '';
+    document.getElementById('suggestion-box').classList.remove('visible');
+    acList.classList.remove('open');
+    showToast(`「${product}」¥${fmtPrice(price)} を登録しました`);
+  } catch (err) {
+    alert('価格の登録に失敗しました:\n' + err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+document.getElementById('entry-price').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addEntry();
+});
+
+// ── Compare View ─────────────────────────────────────────────
+function renderCompare() {
+  const search = (document.getElementById('compare-search').value || '').trim().toLowerCase();
+  const grid   = document.getElementById('compare-grid');
+  const strip  = document.getElementById('stats-strip');
+
+  const products = [...new Set(data.entries.map(e => e.product))];
+  const stores   = data.stores;
+  strip.innerHTML = `
+    <div class="stat-box"><div class="stat-label">登録店舗</div><div class="stat-val">${stores.length}</div></div>
+    <div class="stat-box"><div class="stat-label">商品数</div><div class="stat-val">${products.length}</div></div>
+    <div class="stat-box"><div class="stat-label">入力件数</div><div class="stat-val">${data.entries.length}</div></div>
+  `;
+
+  if (data.entries.length === 0 || stores.length === 0) {
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">🛒</div><p>データがありません。まず価格を入力してください。</p></div>';
+    return;
+  }
+
+  let filtered = products;
+  if (search) filtered = filtered.filter(p => p.toLowerCase().includes(search));
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>該当する商品がありません。</p></div>';
+    return;
+  }
+
+  filtered.sort();
+
+  grid.innerHTML = filtered.map(product => {
+    const byStore = {};
+    data.entries.filter(e => e.product === product).forEach(e => {
+      if (!byStore[e.store] || e.date > byStore[e.store].date) byStore[e.store] = e;
+    });
+
+    const storePrices = stores.map(s => byStore[s] || null);
+    const prices      = storePrices.filter(Boolean).map(e => e.price);
+    const minPrice    = prices.length ? Math.min(...prices) : null;
+    const storeCount  = prices.length;
+
+    const cells = stores.map(s => {
+      const e = byStore[s];
+      if (!e) return `<div class="price-cell no-data"><div class="store-name">${s}</div><div class="price-val">—</div></div>`;
+      const isBest = e.price === minPrice && prices.length > 1;
+      return `
+        <div class="price-cell${isBest ? ' best' : ''}">
+          <button class="cell-del" onclick="deleteEntryFromCompare('${e.id}')" title="削除">×</button>
+          <div class="store-name">${s}${isBest ? '<span class="best-badge">最安値</span>' : ''}</div>
+          <div class="price-val"><span class="price-yen">¥</span>${fmtPrice(e.price)}</div>
+          ${e.note ? `<div class="price-date" style="color:var(--text);margin-top:4px">${e.note}</div>` : ''}
+          <div class="price-date">${fmtDate(e.date)}</div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="compare-card">
+        <div class="compare-product-header">
+          <div class="compare-product-name">${product}</div>
+          <div class="compare-product-meta">${storeCount}店舗のデータ${minPrice !== null ? '　最安 ¥' + fmtPrice(minPrice) : ''}</div>
+        </div>
+        <div class="compare-prices">${cells}</div>
+      </div>`;
+  }).join('');
+}
+
+async function deleteEntryFromCompare(id) {
+  if (isLoading) return;
+  const e = data.entries.find(x => x.id === id);
+  if (!e) return;
+  if (!confirm(`「${e.product}」¥${fmtPrice(e.price)}（${e.store}）を削除しますか？`)) return;
+
+  setLoading(true);
+  try {
+    await apiPost('deletePrice', { id });
+    data.entries = data.entries.filter(x => x.id !== id);
+    renderCompare();
+    showToast('削除しました');
+  } catch (err) {
+    alert('削除に失敗しました:\n' + err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+document.getElementById('compare-search').addEventListener('input', renderCompare);
+
+// ── History View ─────────────────────────────────────────────
+function renderHistory() {
+  const storeFilter = document.getElementById('hist-store-filter').value;
+  const search      = document.getElementById('hist-search').value.trim().toLowerCase();
+  const tbody       = document.getElementById('history-tbody');
+  const empty       = document.getElementById('history-empty');
+
+  let entries = [...data.entries].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  if (storeFilter) entries = entries.filter(e => e.store === storeFilter);
+  if (search)      entries = entries.filter(e => e.product.toLowerCase().includes(search) || e.store.toLowerCase().includes(search));
+
+  if (entries.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    document.querySelector('.table-wrap').style.display = 'none';
+  } else {
+    empty.style.display = 'none';
+    document.querySelector('.table-wrap').style.display = '';
+    tbody.innerHTML = entries.map(e => `
+      <tr id="hist-row-${e.id}">
+        <td class="td-date">${fmtDate(e.date)}</td>
+        <td>${e.store}</td>
+        <td>${e.product}</td>
+        <td style="color:var(--muted);font-size:12px">${e.note || '—'}</td>
+        <td class="td-price">¥${fmtPrice(e.price)}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteEntry('${e.id}')">削除</button></td>
+      </tr>
+    `).join('');
+  }
+}
+
+async function deleteEntry(id) {
+  if (isLoading) return;
+  const e = data.entries.find(x => x.id === id);
+  if (!e) return;
+
+  const row = document.getElementById('hist-row-' + id);
+  if (row) {
+    row.classList.add('deleting');
+    row.addEventListener('animationend', async () => {
+      setLoading(true);
+      try {
+        await apiPost('deletePrice', { id });
+        data.entries = data.entries.filter(x => x.id !== id);
+        renderHistory();
+        showToast('削除しました');
+      } catch (err) {
+        alert('削除に失敗しました:\n' + err.message);
+        renderHistory();
+      } finally {
+        setLoading(false);
+      }
+    }, { once: true });
+  } else {
+    setLoading(true);
+    try {
+      await apiPost('deletePrice', { id });
+      data.entries = data.entries.filter(x => x.id !== id);
+      renderHistory();
+      showToast('削除しました');
+    } catch (err) {
+      alert('削除に失敗しました:\n' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+}
+
+document.getElementById('hist-store-filter').addEventListener('change', renderHistory);
+document.getElementById('hist-search').addEventListener('input', renderHistory);
+
+// ── Init ─────────────────────────────────────────────────────
+document.getElementById('entry-date').value = today();
+loadData();
+</script>
+</body>
+</html>
