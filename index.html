@@ -402,6 +402,7 @@
     <button class="nav-btn active" data-view="input">入力</button>
     <button class="nav-btn" data-view="compare">比較</button>
     <button class="nav-btn" data-view="history">履歴</button>
+    <button class="nav-btn" data-view="store">店舗</button>
   </nav>
 </header>
 
@@ -417,12 +418,10 @@
     詳細は同梱の <code>gas_code.gs</code> の冒頭コメントを参照してください。
   </div>
 
-  <!-- ── INPUT VIEW ── -->
-  <div id="view-input" class="view active">
-
-    <!-- Store management -->
+  <!-- ── STORE VIEW ── -->
+  <div id="view-store" class="view">
     <div class="section-title">店舗管理</div>
-    <div class="card" style="margin-bottom:24px">
+    <div class="card">
       <div class="form-row cols-2">
         <div>
           <label>店舗名を追加</label>
@@ -436,6 +435,10 @@
         <span style="font-size:13px;color:var(--muted)" id="no-stores-msg">店舗がまだありません</span>
       </div>
     </div>
+  </div>
+
+  <!-- ── INPUT VIEW ── -->
+  <div id="view-input" class="view active">
 
     <!-- Price entry form -->
     <div class="section-title">価格を入力</div>
@@ -627,6 +630,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     document.getElementById('view-' + view).classList.add('active');
     if (view === 'compare') renderCompare();
     if (view === 'history') renderHistory();
+    if (view === 'store')   renderStores();
   });
 });
 
