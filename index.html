@@ -576,13 +576,33 @@ function setLoading(state) {
   document.body.classList.toggle('loading', state);
 }
 
+function renderAll() {
+  renderStores();
+  renderCompare();
+  renderHistory();
+}
+
 async function loadData() {
   if (!GAS_URL) {
     document.getElementById('setup-banner').style.display = '';
-    renderStores();
+    renderAll();
     return;
   }
-  setLoading(true);
+
+  // キャッシュがあれば即座に表示
+  try {
+    const cached = localStorage.getItem('gasCache');
+    if (cached) {
+      const { stores, entries } = JSON.parse(cached);
+      data.stores  = stores  || [];
+      data.entries = entries || [];
+      renderAll();
+    }
+  } catch (_) {}
+
+  const hasCache = data.stores.length > 0 || data.entries.length > 0;
+  if (!hasCache) setLoading(true);
+
   try {
     const [stores, entries] = await Promise.all([
       apiGet('getStores'),
@@ -590,13 +610,12 @@ async function loadData() {
     ]);
     data.stores  = stores;
     data.entries = entries;
+    localStorage.setItem('gasCache', JSON.stringify({ stores, entries }));
   } catch (err) {
-    alert('データの読み込みに失敗しました:\n' + err.message);
+    if (!hasCache) alert('データの読み込みに失敗しました:\n' + err.message);
   } finally {
     setLoading(false);
-    renderStores();
-    renderCompare();
-    renderHistory();
+    renderAll();
   }
 }
 
